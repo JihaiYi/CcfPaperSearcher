@@ -4,10 +4,10 @@ import requests
 import os
 from bs4 import BeautifulSoup, element
 
-
+#
 task_dict = {
     "Bipartite Graph": ["bipartite"],
-    "Anchor": ["anchor"],
+    # "Anchor": ["anchor"],
 
     # "feature extraction": ["feature extraction"],
     # "feature selection": ["feature selection"],
@@ -184,8 +184,13 @@ def get_papers(book_title, year, url, keys, is_conference, papers_file_name):
         title = li.find(name="span", attrs={"class": "title"}).text
         if contain_keywords(title, keys):
             paper_no += 1
-            papers_str += "|" + book_title + "|" + year + "|" + title + "|\n"
-
+            authors = li.find_all('span', itemprop="author")
+            author_names = []
+            for author in authors:
+                author_name = author.find(name="span", itemprop="name").text
+                author_names.append(author_name)
+            authors_str = ",".join(author_names)
+            papers_str += "|" + book_title + "|" + year + "|" + title +  "|" + authors_str + "|\n"
 
     append_file(papers_str, papers_file_name)
     end_time = time.time()
@@ -207,7 +212,7 @@ def crawl_paper(is_conference):
         if os.path.exists(papers_file_name):
             os.remove(papers_file_name)
 
-        header = "| c/j | year | paper |\n| ---- | ---- | ----| \n"
+        header = "| c/j | year | paper | authors |\n| ---- | ---- | ----| ----|\n"
         with open(papers_file_name, "w") as f:
             f.write(header)
         print(f" ---- Task: {task} ---- {cj} -------- ")
