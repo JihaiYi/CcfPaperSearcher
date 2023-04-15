@@ -6,8 +6,9 @@ from bs4 import BeautifulSoup, element
 
 #
 task_dict = {
-    "Bipartite Graph": ["bipartite"],
-    # "Anchor": ["anchor"],
+    # "Bipartite Graph": ["bipartite"],
+    "Clustering": ["clustering"],
+    # "Anchor": ["anchor graph"],
 
     # "feature extraction": ["feature extraction"],
     # "feature selection": ["feature selection"],
@@ -97,29 +98,28 @@ def get_conference_urls(year_range, soup, book_title):
     for year in year_range:
         print(year)
         h2_year = soup.find(name="h2", id=str(year))
-        if h2_year is None:
-            continue
-        h2 = h2_year.parent
-        publicans = h2.next_sibling
-        if publicans is None:
-            continue
-        contents = publicans.find_all(name="a", class_="toc-link")
-        if contents is None:
-            continue
-        for content in contents:
-            href = content['href']
-            if href not in lines and href.startswith(dblp_url) and href.endswith(".html"):
-                line = book_title + "," + str(year) + "," + href
-                print(line)
-                lines.append(line)
+        if h2_year is not None:
+            h2 = h2_year.parent
+            publicans = h2.next_sibling
+            if publicans is None:
+                continue
+            contents = publicans.find_all(name="a", class_="toc-link")
+            if contents is None:
+                continue
+            for content in contents:
+                href = content['href']
+                if href not in lines and href.startswith(dblp_url) and href.endswith(".html"):
+                    line = book_title + "," + str(year) + "," + href
+                    print(line)
+                    lines.append(line)
 
-        p = publicans.next_sibling
-        if type(p.string) == element.Comment:
-            continue
-        workshops = p.find_all(name="a")
-        for workshop in workshops:
-            href = workshop['href']
-            build_line(book_title, href, lines, year)
+            p = publicans.next_sibling
+            if type(p.string) == element.Comment:
+                continue
+            workshops = p.find_all(name="a")
+            for workshop in workshops:
+                href = workshop['href']
+                build_line(book_title, href, lines, year)
     return lines
 
 
@@ -135,17 +135,16 @@ def get_journal_urls(year_range, soup, book_title):
     lines = []
     for year in year_range:
         lis = soup.find_all(name="li")
-        if lis is None:
-            continue
-        for li in lis:
-            if str(year) in li.text:
-                print(year)
-                anchors = li.find_all(name="a")
-                if anchors is None:
-                    continue
-                for anchor in anchors:
-                    href = anchor['href']
-                    build_line(book_title, href, lines, year)
+        if lis is not None:
+            for li in lis:
+                if str(year) in li.text:
+                    print(year)
+                    anchors = li.find_all(name="a")
+                    if anchors is None:
+                        continue
+                    for anchor in anchors:
+                        href = anchor['href']
+                        build_line(book_title, href, lines, year)
     return lines
 
 
@@ -190,7 +189,10 @@ def get_papers(book_title, year, url, keys, is_conference, papers_file_name):
                 author_name = author.find(name="span", itemprop="name").text
                 author_names.append(author_name)
             authors_str = ",".join(author_names)
-            papers_str += "|" + book_title + "|" + year + "|" + title +  "|" + authors_str + "|\n"
+
+            ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
+            electronic_edition =ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
+            papers_str += "|" + book_title + "|" + year + "|" + title +  "|" + authors_str +  "|" + electronic_edition + "| \n"
 
     append_file(papers_str, papers_file_name)
     end_time = time.time()
@@ -212,7 +214,7 @@ def crawl_paper(is_conference):
         if os.path.exists(papers_file_name):
             os.remove(papers_file_name)
 
-        header = "| c/j | year | paper | authors |\n| ---- | ---- | ----| ----|\n"
+        header = "| c/j | year | paper | authors | url | \n| ---- | ---- | ----| ----| ----|\n"
         with open(papers_file_name, "w") as f:
             f.write(header)
         print(f" ---- Task: {task} ---- {cj} -------- ")
