@@ -192,7 +192,7 @@ def get_papers(book_title, year, url, keys, is_conference, papers_file_name):
 
             ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
             electronic_edition =ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
-            papers_str += "|" + book_title + "|" + year + "|" + title +  "|" + authors_str +  "|" + electronic_edition + "| \n"
+            papers_str += "|" + book_title + "|" + year + "|" + title + "|" + authors_str + "|" + electronic_edition + "| \n"
 
     append_file(papers_str, papers_file_name)
     end_time = time.time()
@@ -224,12 +224,14 @@ def crawl_paper(is_conference):
 
 
 if __name__ == '__main__':
-
-    # get_urls()
-    # conf
-    crawl_paper(True)
-    # journal
-    crawl_paper(False)
+    needPrepare = False
+    if needPrepare:
+        get_urls()
+    else:
+        # conf
+        crawl_paper(True)
+        # journal
+        crawl_paper(False)
 
 
 
