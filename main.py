@@ -6,10 +6,11 @@ from bs4 import BeautifulSoup, element
 
 #
 task_dict = {
+     "Projection": ["projection"],
     # "Bipartite Graph": ["bipartite"],
-    "Clustering": ["clustering"],
-    # "Anchor": ["anchor graph"],
-
+    # "Clustering": ["clustering"],
+    # "Anchor": [["anchor graph"],
+    #            ["anchor-graph"]]
     # "feature extraction": ["feature extraction"],
     # "feature selection": ["feature selection"],
     # "embedding": [["embedding"],
@@ -23,6 +24,9 @@ task_dict = {
     # "dimensionality reduction": ["dimensionality reduction"],
 }
 
+# author_dict = {
+#     "Feiping Nie" : "https://dblp.org/pid/80/5755.html"
+# }
 
 ai_conferences_ccf_a = ["aaai", "nips", "acl", "cvpr", "iccv", "icml", "ijcai"]
 ai_journals_ccf_a = ["ai", "pami", "ijcv", "jmlr"]
@@ -33,6 +37,7 @@ dblp_url = "https://dblp.uni-trier.de/db"
 
 conferences_file_name = "url\\" + "conferences_ccf_a.csv"
 journals_file_name = "url\\" + "journals_ccf_a.csv"
+authors_file_name = "url\\" + "authors.csv"
 
 
 def contain_keywords(paper_title, keywords):
@@ -168,15 +173,17 @@ def get_urls():
         get_conf_journal_urls(False, journal, from_year, to_year)
 
 
-def get_papers(book_title, year, url, keys, is_conference, papers_file_name):
+def get_papers(book_title, year, url, keys, search_type, papers_file_name):
     start_time = time.time()
     page = requests.get(url).text
     soup = BeautifulSoup(page, "html.parser")
-    if is_conference:
+    if search_type=="conferences":
         entries = soup.find_all(name="li", attrs={"class": "entry inproceedings"})
-    else:
+    elif search_type=="journals":
         entries = soup.find_all(name="li", attrs={"class": "entry article"})
-
+    else:
+        entries = soup.find_all(name="li", attrs={"class": "entry article toc"})
+        author0 = book_title
     paper_no = 0
     papers_str = ""
     for li in entries:
@@ -189,6 +196,9 @@ def get_papers(book_title, year, url, keys, is_conference, papers_file_name):
                 author_name = author.find(name="span", itemprop="name").text
                 author_names.append(author_name)
             authors_str = ",".join(author_names)
+            if search_type=="authors":
+                book_title = li.find(name="span", itemprop="isPartOf").find(name="span", itemprop="name").text
+                year = str(li.find(name="span", itemprop="datePublished").text)
 
             ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
             electronic_edition =ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
@@ -198,17 +208,22 @@ def get_papers(book_title, year, url, keys, is_conference, papers_file_name):
     end_time = time.time()
     time_used = end_time - start_time
     url0 = url.replace("\n", "")
-    print(f"{book_title}, {year}, {url0}, {paper_no} papers,  {time_used:.4}s.")
-
-
-def crawl_paper(is_conference):
-    if is_conference:
-        lines = read_url(conferences_file_name)
-        cj = "conferences"
+    if search_type == "authors":
+        print(f"{author0}, {url0}, {paper_no} papers,  {time_used:.4}s.")
     else:
-        lines = read_url(journals_file_name)
-        cj = " journal"
+        print(f"{book_title}, {year}, {url0}, {paper_no} papers,  {time_used:.4}s.")
 
+def crawl_paper(search_type):
+    cj = search_type
+    if search_type == "conferences":
+        lines = read_url(conferences_file_name)
+    elif search_type == "journals":
+        lines = read_url(journals_file_name)
+    elif search_type == "authors":
+        lines = read_url(authors_file_name)
+        for line in lines:
+            author, url = line.split(",")
+        cj = author
     for task, keywords in task_dict.items():
         papers_file_name = "./paper/" + task + "_" + cj + ".md"
         if os.path.exists(papers_file_name):
@@ -218,21 +233,23 @@ def crawl_paper(is_conference):
         with open(papers_file_name, "w") as f:
             f.write(header)
         print(f" ---- Task: {task} ---- {cj} -------- ")
-        for line in lines:
-            book_title, year, url = line.split(",")
-            get_papers(book_title, year, url, keywords, is_conference, papers_file_name)
+        if search_type != "authors":
+            for line in lines:
+                book_title, year, url = line.split(",")
+                get_papers(book_title, year, url, keywords, search_type, papers_file_name)
+        else:
+            get_papers(author, 0, url, keywords, search_type, papers_file_name)
 
 
 if __name__ == '__main__':
-    needPrepare = False
-    if needPrepare:
+    need_update_url = False
+    is_by_author = True
+    if need_update_url:
         get_urls()
     else:
-        # conf
-        crawl_paper(True)
-        # journal
-        crawl_paper(False)
-
-
-
+        if is_by_author:
+            crawl_paper("authors")
+        else:
+            crawl_paper("conferences")
+            crawl_paper("journals")
 
