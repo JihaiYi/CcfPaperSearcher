@@ -3,12 +3,18 @@ import time
 import requests
 import os
 from bs4 import BeautifulSoup, element
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+import re
+import json
+
 
 #
 task_dict = {
-     "Projection": ["projection"],
+     # "Stock": ["stock"],
+    # "Projection": ["projection"],
     # "Bipartite Graph": ["bipartite"],
-    # "Clustering": ["clustering"],
+    "Clustering": ["clustering"],
     # "Anchor": [["anchor graph"],
     #            ["anchor-graph"]]
     # "feature extraction": ["feature extraction"],
@@ -28,17 +34,27 @@ task_dict = {
 #     "Feiping Nie" : "https://dblp.org/pid/80/5755.html"
 # }
 
-ai_conferences_ccf_a = ["aaai", "nips", "acl", "cvpr", "iccv", "icml", "ijcai"]
-ai_journals_ccf_a = ["ai", "pami", "ijcv", "jmlr"]
-db_dm_ir_conferences_ccf_a = ["sigmod", "kdd", "icde", "sigir", "vldb"]
-db_dm_ir_journals_ccf_a = ["tods", "tois", "tkde", "vldb"]
+ai_conferences = ["aaai", "nips", "acl", "cvpr", "iccv", "icml", "ijcai"]
+ai_journals = ["ai", "pami", "ijcv", "jmlr", "tnn"]
+dm_conferences = ["sigmod", "kdd", "icde", "sigir", "vldb"]
+dm_journals = ["tods", "tois", "tkde", "vldb"]
 
 dblp_url = "https://dblp.uni-trier.de/db"
+sci_hub = "www.sci-hub.wf"
+chrome_driver_path = "D:/PRO/chromedriver/chromedriver.exe"
+prefs = {"download.default_directory": "E:/DOWNLOAD"}
+download_folder="E:/DOWNLOAD/"
 
-conferences_file_name = "url\\" + "conferences_ccf_a.csv"
-journals_file_name = "url\\" + "journals_ccf_a.csv"
+conferences_file_name = ""
+journals_file_name = ""
 authors_file_name = "url\\" + "authors.csv"
 
+range_year = 3  # 3 years
+
+sci_hub_pdfs = {}
+
+SLEEP_TIME1 = 1
+SLEEP_TIME2 = 10
 
 def contain_keywords(paper_title, keywords):
     for keyword in keywords:
@@ -153,22 +169,17 @@ def get_journal_urls(year_range, soup, book_title):
     return lines
 
 
-def get_urls():
-    today = datetime.datetime.today()
-    year = today.year        # 2023
-    to_year = year - 1       # 2022
-    from_year = to_year - 2  # 2020
+def get_urls(from_year=0, to_year=0):
+
     if os.path.exists(conferences_file_name):
         os.remove(conferences_file_name)
-    conferences = ai_conferences_ccf_a + db_dm_ir_conferences_ccf_a
+    conferences = ai_conferences + dm_conferences
     for conference in conferences:
         get_conf_journal_urls(True, conference, from_year, to_year)
 
-    to_year = year           # 2023
-    from_year = to_year - 2  # 2021
     if os.path.exists(journals_file_name):
         os.remove(journals_file_name)
-    journals = ai_journals_ccf_a + db_dm_ir_journals_ccf_a
+    journals = ai_journals + dm_journals
     for journal in journals:
         get_conf_journal_urls(False, journal, from_year, to_year)
 
@@ -185,7 +196,7 @@ def get_papers(book_title, year, url, keys, search_type, papers_file_name):
         entries = soup.find_all(name="li", attrs={"class": "entry article toc"})
         author0 = book_title
     paper_no = 0
-    papers_str = ""
+    paper_info_line = ""
     for li in entries:
         title = li.find(name="span", attrs={"class": "title"}).text
         if contain_keywords(title, keys):
@@ -201,10 +212,13 @@ def get_papers(book_title, year, url, keys, search_type, papers_file_name):
                 year = str(li.find(name="span", itemprop="datePublished").text)
 
             ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
-            electronic_edition =ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
-            papers_str += "|" + book_title + "|" + year + "|" + title + "|" + authors_str + "|" + electronic_edition + "| \n"
+            doi_url =ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
+            sci_hub_url = doi_url.replace('doi.org', sci_hub)
+            title0 = re.sub(r'[\\/:*?"<>|.]', '', title)
+            sci_hub_pdfs[title0] = sci_hub_url
+            paper_info_line += "|" + book_title + "|" + year + "|" + title + "|" + authors_str + "|" + doi_url + "|" + sci_hub_url +"| \n"
 
-    append_file(papers_str, papers_file_name)
+    append_file(paper_info_line, papers_file_name)
     end_time = time.time()
     time_used = end_time - start_time
     url0 = url.replace("\n", "")
@@ -229,7 +243,7 @@ def crawl_paper(search_type):
         if os.path.exists(papers_file_name):
             os.remove(papers_file_name)
 
-        header = "| c/j | year | paper | authors | url | \n| ---- | ---- | ----| ----| ----|\n"
+        header = "| c/j | year | paper | authors | url | sci-hub |\n| ---- | ---- | ----| ----| ----| ----|\n"
         with open(papers_file_name, "w") as f:
             f.write(header)
         print(f" ---- Task: {task} ---- {cj} -------- ")
@@ -241,15 +255,77 @@ def crawl_paper(search_type):
             get_papers(author, 0, url, keywords, search_type, papers_file_name)
 
 
+def download_sci_hub(wd, url, title):
+    print(title)
+    print(url)
+    chromeOptions = webdriver.ChromeOptions()
+    chromeOptions.add_experimental_option("prefs", prefs)
+    wd.get(url)
+    time.sleep(SLEEP_TIME1)
+    try:
+        b = wd.find_element_by_xpath('//*[@id="buttons"]/ul/li[2]/a')
+        b.click()
+        a = url.split('/')
+        old = download_folder + a[len(a) - 1] + '.pdf'
+        new = download_folder + title + '.pdf'
+        os.rename(old, new)
+        flag = True
+        print('OK!')
+        time.sleep(SLEEP_TIME2)
+    except NoSuchElementException:
+        print('NO!')
+        flag = False
+    except:
+        print('failed!')
+        flag = False
+        time.sleep(SLEEP_TIME2)
+    wd.quit()
+    return flag
+
+
 if __name__ == '__main__':
+    from_year = 0
+    to_year = 0
+
+    # need_update_url = True
     need_update_url = False
-    is_by_author = True
-    if need_update_url:
-        get_urls()
+    is_by_author = False
+    # is_by_author = True
+    is_download_pdf = False
+    # is_download_pdf = False
+
+    if is_download_pdf:  # download pdf
+        tf = open("pdf_url.json", "r")
+        sci_hub_pdfs = json.load(tf)
+        index = 1
+        wd = webdriver.Chrome(executable_path=chrome_driver_path)
+        for title, url in sci_hub_pdfs.items():
+            print(index)
+            download_sci_hub(wd, url, title)
+            index = index + 1
+        wd.quit()
     else:
-        if is_by_author:
+        if from_year == 0 and to_year == 0:
+            today = datetime.datetime.today()
+            year = today.year  # 2024
+            to_year = year  # 2024
+            from_year = to_year - range_year  # 2021
+        # global conferences_file_name
+        conferences_file_name = "url\\" + "conferences_" + str(from_year) + "_" + str(to_year) + ".csv"
+        # global journals_file_name
+        journals_file_name = "url\\" + "journals_" + str(from_year) + "_" + str(to_year) + ".csv"
+
+        if need_update_url:  # update conferences/journals url list
+            get_urls(from_year, to_year)
+
+        if is_by_author:   # papers of the author
             crawl_paper("authors")
-        else:
+        else:              # papers of the conferences and journals
             crawl_paper("conferences")
             crawl_paper("journals")
+        # 保存文件
+        tf = open("pdf_url.json", "w")
+        json.dump(sci_hub_pdfs, tf)
+        tf.close()
+
 
