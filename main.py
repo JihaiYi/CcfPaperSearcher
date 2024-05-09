@@ -11,7 +11,7 @@ import json
 
 #
 task_dict = {
-    # "Clustering": ["clustering"],
+    "Clustering": ["clustering"],
     # "PCA":       [["principal component analysis"],["PCA"]]
     # "feature selection": ["feature selection"],
 
@@ -22,12 +22,7 @@ task_dict = {
     #              ],
     # "Projection": ["projection"],
 
-    "Anchor": [ ["anchor"], ["bipartite"] ]
-
-    # "Anchor": [["anchor graph"],
-    #            ["anchor-graph"]]
-
-    # "Bipartite Graph": ["bipartite"],
+    # "Anchor": [ ["anchor"], ["bipartite"] ]
 
     # "Stock": ["stock"],
 }
@@ -281,8 +276,8 @@ def download_sci_hub(wd, url, title):
 
 
 if __name__ == '__main__':
-    from_year = 2021
-    to_year = 2022
+    to_year = 2024
+    from_year = 2024
 
     need_update_url = False
     # need_update_url = False
@@ -319,7 +314,7 @@ if __name__ == '__main__':
                 crawl_paper("conferences", year)
                 crawl_paper("journals", year)
 
-        # 保存文件
+        # save file
         tf = open("pdf_url.json", "w")
         json.dump(sci_hub_pdfs, tf)
         tf.close()
