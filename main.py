@@ -11,8 +11,8 @@ import json
 
 #
 task_dict = {
-    "Clustering": ["clustering"],
-
+    # "Clustering": ["clustering"],
+    # "PCA":       [["principal component analysis"],["PCA"]]
     # "feature selection": ["feature selection"],
 
     # "dimensionality reduction": ["dimensionality reduction"],
@@ -21,6 +21,8 @@ task_dict = {
     #               ["embed"],
     #              ],
     # "Projection": ["projection"],
+
+    "Anchor": [ ["anchor"], ["bipartite"] ]
 
     # "Anchor": [["anchor graph"],
     #            ["anchor-graph"]]
@@ -222,7 +224,7 @@ def get_papers(book_title, year, url, keys, search_type, papers_file_name):
     else:
         print(f"{book_title}, {year}, {url0}, {paper_no} papers,  {time_used:.4}s.")
 
-def crawl_paper(search_type):
+def crawl_paper(search_type, year):
     cj = search_type
     if search_type == "conferences":
         lines = read_url(conferences_file_name)
@@ -234,10 +236,7 @@ def crawl_paper(search_type):
             author, url = line.split(",")
         cj = author
     for task, keywords in task_dict.items():
-        if from_year == to_year:
-            papers_file_name = "./paper/" + task + "_" + cj + "_" + str(to_year) + ".md"
-        else:
-            papers_file_name = "./paper/" + task + "_" + cj + "_" + str(from_year) + "_" + str(to_year) + ".md"
+        papers_file_name = "./paper/" + task + "_" + cj + "_" + str(year) + ".md"
         if os.path.exists(papers_file_name):
             os.remove(papers_file_name)
 
@@ -282,10 +281,10 @@ def download_sci_hub(wd, url, title):
 
 
 if __name__ == '__main__':
-    from_year = 2024
-    to_year = 2024
+    from_year = 2021
+    to_year = 2022
 
-    need_update_url = True
+    need_update_url = False
     # need_update_url = False
     is_by_author = False
     # is_by_author = True
@@ -307,22 +306,19 @@ if __name__ == '__main__':
             today = datetime.datetime.today()
             year = today.year  # 2024
             to_year = year  # 2024
-            from_year = to_year - range_year  # 2021
+            from_year = to_year - range_year  # 2023
+        for year in range(to_year, from_year-1, -1):
+            conferences_file_name = "url\\" + "conferences_" + str(year) + ".csv"
+            journals_file_name = "url\\" + "journals_"  + str(year) + ".csv"
+            if need_update_url:  # update conferences/journals url list
+                get_urls()
 
-        if from_year == to_year:
-            conferences_file_name = "url\\" + "conferences_" + str(to_year) + ".csv"
-            journals_file_name = "url\\" + "journals_"  + str(to_year) + ".csv"
-        else:
-            conferences_file_name = "url\\" + "conferences_" + str(from_year) + "_" + str(to_year) + ".csv"
-            journals_file_name = "url\\" + "journals_" + str(from_year) + "_" + str(to_year) + ".csv"
-        if need_update_url:  # update conferences/journals url list
-            get_urls()
+            if is_by_author:   # papers of the author
+                crawl_paper("authors", year)
+            else:              # papers of the conferences and journals
+                crawl_paper("conferences", year)
+                crawl_paper("journals", year)
 
-        if is_by_author:   # papers of the author
-            crawl_paper("authors")
-        else:              # papers of the conferences and journals
-            crawl_paper("conferences")
-            crawl_paper("journals")
         # 保存文件
         tf = open("pdf_url.json", "w")
         json.dump(sci_hub_pdfs, tf)
