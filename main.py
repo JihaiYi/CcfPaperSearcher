@@ -17,9 +17,7 @@ task_dict = {
 
     # "dimensionality reduction": ["dimensionality reduction"],
     # "feature extraction": ["feature extraction"],
-    # "embedding": [["embedding"],
-    #               ["embed"],
-    #              ],
+    # "embedding": [["embedding"],["embed"],],
     # "Projection": ["projection"],
 
     # "Anchor": [ ["anchor"], ["bipartite"] ]
@@ -279,12 +277,13 @@ if __name__ == '__main__':
     to_year = 2024
     from_year = 2024
 
+    # need_update_url = True
     need_update_url = False
-    # need_update_url = False
     is_by_author = False
     # is_by_author = True
     is_download_pdf = False
     # is_download_pdf = False
+    need_crawl_paper = False
 
     if is_download_pdf:  # download pdf
         tf = open("pdf_url.json", "r")
@@ -308,11 +307,12 @@ if __name__ == '__main__':
             if need_update_url:  # update conferences/journals url list
                 get_urls()
 
-            if is_by_author:   # papers of the author
-                crawl_paper("authors", year)
-            else:              # papers of the conferences and journals
-                crawl_paper("conferences", year)
-                crawl_paper("journals", year)
+            if need_crawl_paper:
+                if is_by_author:   # papers of the author
+                    crawl_paper("authors", year)
+                else:              # papers of the conferences and journals
+                    crawl_paper("conferences", year)
+                    crawl_paper("journals", year)
 
         # save file
         tf = open("pdf_url.json", "w")
