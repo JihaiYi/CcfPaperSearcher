@@ -27,10 +27,10 @@ task_dict = {
     # "Stock": ["stock"],
 }
 
-ai_conferences = ["aaai", "nips", "acl", "cvpr", "iccv", "icml", "ijcai"]
-ai_journals = ["ai", "pami", "ijcv", "jmlr", "tnn"]
+ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp"]
+ai_journals = [ "pami", "ijcv", "ai", "jmlr", "tnn"]
 dm_conferences = ["sigmod", "kdd", "icde", "sigir", "vldb"]
-dm_journals = ["tods", "tois", "tkde", "vldb"]
+dm_journals = ["tkde", "tods", "tois",  "vldb"]
 
 dblp_url = "https://dblp.uni-trier.de/db"
 sci_hub = "www.sci-hub.wf"
