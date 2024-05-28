@@ -52,7 +52,7 @@ def build_line(book_title, href, lines, year):
 def get_papers(book_title, year, url, search_type, papers_file_name):
     start_time = time.time()
     # page = requests.get(url).text
-    page = login(driver, url)
+    page = get_source(driver, url)
     soup = BeautifulSoup(page, "html.parser")
     if search_type=="conferences":
         entries = soup.find_all(name="li", attrs={"class": "entry inproceedings toc marked"})
@@ -122,7 +122,7 @@ def crawl_paper(search_type, year):
         get_papers(author, 0, url, search_type, papers_file_name)
 
 
-def init():
+def init_driver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     # chrome_options.add_argument('--disable-gpu')
@@ -131,7 +131,7 @@ def init():
     return driver
 
 
-def login(driver, url):
+def get_source(driver, url):
     driver.get(url)
     time.sleep(1)
     driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
@@ -147,12 +147,7 @@ if __name__ == '__main__':
     is_by_author = False                # download by author
     # is_by_author = True               # download by conferences and journals
 
-    driver = init()
-    if from_year == 0 and to_year == 0:
-        today = datetime.datetime.today()
-        year = today.year  # 2024
-        to_year = year  # 2024
-        from_year = to_year - range_year  # 2023
+    driver = init_driver()
     for year in range(to_year, from_year - 1, -1):
         if is_by_author:  # papers of the author
             crawl_paper("authors", year)
