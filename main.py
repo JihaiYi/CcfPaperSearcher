@@ -1,4 +1,3 @@
-import datetime
 import time
 import os
 from bs4 import BeautifulSoup
@@ -6,7 +5,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 keyword = "clustering"
-
 
 ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp"]
 ai_journals = ["pami", "ijcv", "ai", "jmlr", "tnn"]
@@ -17,8 +15,6 @@ dblp_url = "https://dblp.uni-trier.de/db"
 sci_hub = "www.sci-hub.wf"
 chrome_driver_path = "D:/PRO/chromedriver/chromedriver.exe"
 
-conferences_file_name = ""
-journals_file_name = ""
 authors_file_name = "url\\" + "authors.csv"
 range_year = 1  # 1 year
 
@@ -54,9 +50,9 @@ def get_papers(book_title, year, url, search_type, papers_file_name):
     # page = requests.get(url).text
     page = get_source(driver, url)
     soup = BeautifulSoup(page, "html.parser")
-    if search_type=="conferences":
+    if search_type == "conferences":
         entries = soup.find_all(name="li", attrs={"class": "entry inproceedings toc marked"})
-    elif search_type=="journals":
+    elif search_type == "journals":
         entries = soup.find_all(name="li", attrs={"class": "entry article toc marked"})
     else:
         entries = soup.find_all(name="li", attrs={"class": "entry article toc"})
@@ -72,14 +68,14 @@ def get_papers(book_title, year, url, search_type, papers_file_name):
             author_name = author.find(name="span", itemprop="name").text
             author_names.append(author_name)
         authors_str = ",".join(author_names)
-        if search_type=="authors":
+        if search_type == "authors":
             book_title = li.find(name="span", itemprop="isPartOf").find(name="span", itemprop="name").text
             year = str(li.find(name="span", itemprop="datePublished").text)
 
         ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
-        doi_url =ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
+        doi_url = ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
         sci_hub_url = doi_url.replace('doi.org', sci_hub)
-        paper_info_line += "|" + book_title + "|" + str(year) + "|" + title + "|" + authors_str + "|" + doi_url + "|" + sci_hub_url +"| \n"
+        paper_info_line += "|" + book_title + "|" + str(year) + "|" + title + "|" + authors_str + "|" + doi_url + "|" + sci_hub_url + "| \n"
 
     append_file(paper_info_line, papers_file_name)
     end_time = time.time()
@@ -108,7 +104,7 @@ def crawl_paper(search_type, year):
     print(f" ---- keyword: {keyword} ---- {cj} -------- ")
 
     base_url = "https://dblp.org/search?q=" + keyword
-    if search_type=="conferences":
+    if search_type == "conferences":
        conferences = ai_conferences + dm_conferences
        for conference in conferences:
            url = base_url + " streamid:conf/" + conference + ": year:" + str(year) + ":"
@@ -154,6 +150,4 @@ if __name__ == '__main__':
         else:  # papers of the conferences and journals
             crawl_paper("conferences", year)
             crawl_paper("journals", year)
-
-
 
