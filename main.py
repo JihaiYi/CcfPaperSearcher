@@ -134,7 +134,8 @@ def get_source(driver, url):
 
 
 if __name__ == '__main__':
-    by_author = True
+    # by_author = True
+    by_author = False
     driver = init_driver()
 
     if by_author:
