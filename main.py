@@ -5,6 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 keyword = "anchor"
+SLEEP_SECONDS = 2
 
 ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp"]
 ai_journals = ["pami", "ijcv", "ai", "jmlr", "tnn"]
@@ -115,25 +116,30 @@ def init_driver():
 
 def get_source(driver, url):
     driver.get(url)
-    time.sleep(1)
+    time.sleep(SLEEP_SECONDS)
     driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
-    time.sleep(1)
+    time.sleep(SLEEP_SECONDS)
     source = driver.page_source
     return source
 
 
 if __name__ == '__main__':
-    to_year = 2023
-    from_year = 2023
-
-    is_by_author = False                # download by author
-    # is_by_author = True               # download by conferences and journals
+    to_year = 2021
+    from_year = 2021
 
     driver = init_driver()
-    for year in range(to_year, from_year - 1, -1):
-        if is_by_author:  # papers of the author
-            crawl_paper("authors", year)
-        else:  # papers of the conferences and journals
-            crawl_paper("conferences", year)
-            crawl_paper("journals", year)
 
+    search_type = "conferences"
+    for year in range(to_year, from_year - 1, -1):
+        crawl_paper(search_type, year)
+
+    print("-----sleep(10)----------")
+    time.sleep(10)
+
+    search_type = "journals"
+    for year in range(to_year, from_year - 1, -1):
+        crawl_paper(search_type, year)
+
+    # search_type = "authors"
+    # for year in range(to_year, from_year - 1, -1):
+    #     crawl_paper(search_type, year)
