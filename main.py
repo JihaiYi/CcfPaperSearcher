@@ -4,7 +4,10 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-keyword = "anchor"
+keyword = "clustering"
+to_year = 2024
+from_year = 2024
+
 SLEEP_SECONDS = 2
 
 ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp"]
@@ -34,7 +37,6 @@ def read_url(file):
 
 def get_papers(book_title, year, url, search_type, papers_file_name):
     start_time = time.time()
-    # page = requests.get(url).text
     page = get_source(driver, url)
     soup = BeautifulSoup(page, "html.parser")
     if search_type == "conferences":
@@ -81,7 +83,10 @@ def crawl_paper(search_type, year):
             author, url = line.split(",")
         cj = author
 
-    papers_file_name = "./paper/" + keyword + "_" + cj + "_" + str(year) + ".md"
+    paper_folder = "./paper/" + keyword
+    if not os.path.exists(paper_folder):
+        os.mkdir(paper_folder)
+    papers_file_name = paper_folder + "/" + keyword + "_" + cj + "_" + str(year) + ".md"
     if os.path.exists(papers_file_name):
         os.remove(papers_file_name)
 
@@ -124,17 +129,14 @@ def get_source(driver, url):
 
 
 if __name__ == '__main__':
-    to_year = 2021
-    from_year = 2021
-
     driver = init_driver()
 
     search_type = "conferences"
     for year in range(to_year, from_year - 1, -1):
         crawl_paper(search_type, year)
 
-    print("-----sleep(10)----------")
-    time.sleep(10)
+    print("-----sleep(30)----------")
+    time.sleep(30)
 
     search_type = "journals"
     for year in range(to_year, from_year - 1, -1):
