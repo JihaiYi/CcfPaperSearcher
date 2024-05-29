@@ -15,12 +15,12 @@ ai_journals = ["pami", "ijcv", "ai", "jmlr", "tnn"]
 dm_conferences = ["sigmod", "kdd", "icde", "sigir", "vldb"]
 dm_journals = ["tkde", "tods", "tois", "vldb"]
 
+AUTHOR = "FeipingNie"
+AUTHOR_URL = "https://dblp.org/pid/80/5755.html"
+
 dblp_url = "https://dblp.uni-trier.de/db"
 sci_hub = "www.sci-hub.wf"
 chrome_driver_path = "D:/PRO/chromedriver/chromedriver.exe"
-
-authors_file_name = "url\\" + "authors.csv"
-range_year = 1  # 1 year
 
 
 def append_file(content, file):
@@ -33,6 +33,10 @@ def read_url(file):
     with open(file, mode='r') as f:
         lines = f.readlines()
     return lines
+
+
+def contain_keyword(paper_title, keyword):
+    return keyword.lower() in paper_title.lower()
 
 
 def get_papers(book_title, year, url, search_type, papers_file_name):
@@ -50,21 +54,22 @@ def get_papers(book_title, year, url, search_type, papers_file_name):
     paper_info_line = ""
     for li in entries:
         title = li.find(name="span", attrs={"class": "title"}).text
-        paper_no += 1
-        authors = li.find_all('span', itemprop="author")
-        author_names = []
-        for author in authors:
-            author_name = author.find(name="span", itemprop="name").text
-            author_names.append(author_name)
-        authors_str = ",".join(author_names)
-        if search_type == "authors":
-            book_title = li.find(name="span", itemprop="isPartOf").find(name="span", itemprop="name").text
-            year = str(li.find(name="span", itemprop="datePublished").text)
+        if search_type != "authors" or contain_keyword(title, keyword):
+            paper_no += 1
+            authors = li.find_all('span', itemprop="author")
+            author_names = []
+            for author in authors:
+                author_name = author.find(name="span", itemprop="name").text
+                author_names.append(author_name)
+            authors_str = ",".join(author_names)
+            if search_type == "authors":
+                book_title = li.find(name="span", itemprop="isPartOf").find(name="span", itemprop="name").text
+                year = str(li.find(name="span", itemprop="datePublished").text)
 
-        ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
-        doi_url = ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
-        sci_hub_url = doi_url.replace('doi.org', sci_hub)
-        paper_info_line += "|" + book_title + "|" + str(year) + "|" + title + "|" + authors_str + "|" + doi_url + "|" + sci_hub_url + "| \n"
+            ulis = li.find(name="nav", attrs={"class": "publ"}).find("ul").find_all(name="li", attrs={"class": "drop-down"})
+            doi_url = ulis[0].find(name="div", attrs={"class": "head"}).find("a")['href']
+            sci_hub_url = doi_url.replace('doi.org', sci_hub)
+            paper_info_line += "|" + book_title + "|" + str(year) + "|" + title + "|" + authors_str + "|" + doi_url + "|" + sci_hub_url + "| \n"
 
     append_file(paper_info_line, papers_file_name)
     end_time = time.time()
@@ -78,15 +83,17 @@ def get_papers(book_title, year, url, search_type, papers_file_name):
 def crawl_paper(search_type, year):
     cj = search_type
     if search_type == "authors":
-        lines = read_url(authors_file_name)
-        for line in lines:
-            author, url = line.split(",")
+        author = AUTHOR
+        url = AUTHOR_URL
         cj = author
 
     paper_folder = "./paper/" + keyword
     if not os.path.exists(paper_folder):
         os.mkdir(paper_folder)
-    papers_file_name = paper_folder + "/" + keyword + "_" + cj + "_" + str(year) + ".md"
+    if search_type == "authors":
+        papers_file_name = paper_folder + "/" + keyword + "_" + cj + ".md"
+    else:
+        papers_file_name = paper_folder + "/" + keyword + "_" + cj + "_" + str(year) + ".md"
     if os.path.exists(papers_file_name):
         os.remove(papers_file_name)
 
@@ -113,9 +120,7 @@ def crawl_paper(search_type, year):
 def init_driver():
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    # chrome_options.add_argument('--disable-gpu')
     driver = webdriver.Chrome(executable_path=chrome_driver_path, options=chrome_options)
-    # driver.maximize_window()
     return driver
 
 
@@ -129,19 +134,21 @@ def get_source(driver, url):
 
 
 if __name__ == '__main__':
+    by_author = True
     driver = init_driver()
 
-    search_type = "conferences"
-    for year in range(to_year, from_year - 1, -1):
-        crawl_paper(search_type, year)
+    if by_author:
+        search_type = "authors"
+        crawl_paper(search_type, year=0)
+    else:
+        search_type = "conferences"
+        for year in range(to_year, from_year - 1, -1):
+            crawl_paper(search_type, year)
 
-    print("-----sleep(30)----------")
-    time.sleep(30)
+        print("-----sleep(30)----------")
+        time.sleep(30)
 
-    search_type = "journals"
-    for year in range(to_year, from_year - 1, -1):
-        crawl_paper(search_type, year)
+        search_type = "journals"
+        for year in range(to_year, from_year - 1, -1):
+            crawl_paper(search_type, year)
 
-    # search_type = "authors"
-    # for year in range(to_year, from_year - 1, -1):
-    #     crawl_paper(search_type, year)
