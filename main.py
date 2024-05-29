@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-keyword = "clustering"
+keyword = "anchor"
 
 ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp"]
 ai_journals = ["pami", "ijcv", "ai", "jmlr", "tnn"]
@@ -25,24 +25,10 @@ def append_file(content, file):
     f.close()
 
 
-def update_file(content, file):
-    f = open(file, "w", encoding="utf-8")
-    f.write(content)
-    f.close()
-
-
 def read_url(file):
     with open(file, mode='r') as f:
         lines = f.readlines()
     return lines
-
-
-def build_line(book_title, href, lines, year):
-    if href.startswith(dblp_url) and href.endswith(".html"):
-        line = book_title + "," + str(year) + "," + href
-        if line not in lines:
-            print(line)
-            lines.append(line)
 
 
 def get_papers(book_title, year, url, search_type, papers_file_name):
