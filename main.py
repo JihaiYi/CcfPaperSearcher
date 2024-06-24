@@ -4,14 +4,16 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+
+# keyword = ""
 keyword = "clustering"
 to_year = 2024
 from_year = 2024
 
 SLEEP_SECONDS = 2
 
-ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp"]
-ai_journals = ["pami", "ijcv", "ai", "jmlr", "tnn"]
+ai_conferences = ["cvpr", "iclr", "nips", "iccv", "icml", "aaai", "ijcai", "acl", "emnlp", "mm"]
+ai_journals = ["pami", "ijcv", "ai", "jmlr", "tnn", "tip"]
 dm_conferences = ["sigmod", "kdd", "icde", "sigir", "vldb"]
 dm_journals = ["tkde", "tods", "tois", "vldb"]
 
@@ -48,7 +50,9 @@ def get_papers(book_title, year, url, search_type, papers_file_name):
     elif search_type == "journals":
         entries = soup.find_all(name="li", attrs={"class": "entry article toc marked"})
     else:
-        entries = soup.find_all(name="li", attrs={"class": "entry article toc"})
+        entries1 = soup.find_all(name="li", attrs={"class": "entry inproceedings toc"})
+        entries2 = soup.find_all(name="li", attrs={"class": "entry article toc"})
+        entries = entries1 + entries2
         author0 = book_title
     paper_no = 0
     paper_info_line = ""
@@ -143,13 +147,13 @@ if __name__ == '__main__':
         crawl_paper(search_type, year=0)
     else:
         search_type = "conferences"
-        for year in range(to_year, from_year - 1, -1):
+        for year in range(to_year, from_year-1, -1):
             crawl_paper(search_type, year)
 
         print("-----sleep(30)----------")
         time.sleep(30)
 
         search_type = "journals"
-        for year in range(to_year, from_year - 1, -1):
+        for year in range(to_year, from_year-1, -1):
             crawl_paper(search_type, year)
 
